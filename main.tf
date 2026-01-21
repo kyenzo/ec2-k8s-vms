@@ -1,0 +1,57 @@
+terraform {
+  required_version = ">= 1.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+
+  default_tags {
+    tags = {
+      Project     = "k8s-vms"
+      ManagedBy   = "Terraform"
+      Environment = var.environment
+    }
+  }
+}
+
+# Get default VPC
+data "aws_vpc" "default" {
+  default = true
+}
+
+# Get default subnet in the first availability zone
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
+# Create EC2 instance using the module
+module "k8s_host" {
+  source = "./terraform/modules/ec2-instance"
+
+  name_prefix  = var.instance_name
+  instance_type = var.instance_type
+  key_name      = var.key_name
+
+  vpc_id    = data.aws_vpc.default.id
+  subnet_id = data.aws_subnets.default.ids[0]
+
+  root_volume_size = var.root_volume_size
+  root_volume_type = var.root_volume_type
+
+  ssh_allowed_cidrs    = var.ssh_allowed_cidrs
+  associate_public_ip  = true
+
+  tags = {
+    Purpose = "Kubernetes-VMs-Host"
+  }
+}

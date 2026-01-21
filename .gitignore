@@ -1,0 +1,47 @@
+# Terraform files
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars.backup
+.terraformrc
+terraform.rc
+
+# SSH Keys - IMPORTANT: Never commit private keys!
+*.pem
+*.key
+*.pub
+id_rsa*
+k8s-vms-key*
+terraform-key*
+
+# Ansible files
+*.retry
+ansible.log
+.vault_pass
+
+# Vagrant files
+.vagrant/
+*.box
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Credentials and secrets
+*.credentials
+secrets.yml
+.env
+.env.*
+
+# Backup files
+*.bak
+*.backup
