@@ -90,6 +90,19 @@ resource "aws_instance" "main" {
   vpc_security_group_ids = [aws_security_group.instance.id]
   subnet_id              = var.subnet_id
 
+  # Spot instance configuration
+  dynamic "instance_market_options" {
+    for_each = var.use_spot_instance ? [1] : []
+    content {
+      market_type = "spot"
+      spot_options {
+        max_price                      = var.spot_max_price != "" ? var.spot_max_price : null
+        spot_instance_type             = "persistent"
+        instance_interruption_behavior = "stop"
+      }
+    }
+  }
+
   root_block_device {
     volume_size           = var.root_volume_size
     volume_type           = var.root_volume_type

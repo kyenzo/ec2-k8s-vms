@@ -4,11 +4,13 @@ This project provisions an EC2 instance with 64GB RAM on AWS using Terraform, de
 
 ## Architecture
 
-- **EC2 Instance**: m5.4xlarge (16 vCPU, 64 GiB RAM) in ca-west-1
+- **EC2 Instance**: r5.2xlarge Spot (8 vCPU, 64 GiB RAM) in ca-west-1
+- **Instance Type**: Spot instance (saves ~60% vs on-demand)
 - **Storage**: 200 GB gp3 root volume
 - **Networking**: Default VPC with public IP and Elastic IP
 - **Security**: Security group with SSH access and Kubernetes API port
 - **SSH Key**: Auto-generated SSH key pair managed by Terraform
+- **Estimated Cost**: ~$110-130/month (spot) vs ~$390/month (on-demand)
 
 ## Prerequisites
 
@@ -91,45 +93,78 @@ terraform output -raw ssh_command | bash
 
 ## Configuration
 
-Edit [terraform.tfvars](terraform.tfvars) to customize:
+All variables have sensible defaults in [variables.tf](variables.tf). To customize, you have several options:
 
-### Instance Type (for different RAM sizes)
+### Option 1: Command-line Flags
 
-```hcl
-instance_type = "m5.4xlarge"  # 64 GB RAM (default)
-# instance_type = "r5.2xlarge"   # 64 GB RAM (memory-optimized, cheaper)
-# instance_type = "m6i.4xlarge"  # 64 GB RAM (newer generation)
+```bash
+# Change instance type
+terraform apply -var="instance_type=r5.2xlarge"
+
+# Change region
+terraform apply -var="aws_region=us-west-2"
+
+# Multiple variables
+terraform apply \
+  -var="instance_type=r5.2xlarge" \
+  -var="root_volume_size=300"
 ```
 
-### Region
+### Option 2: Environment Variables
 
-```hcl
-aws_region = "ca-west-1"  # Calgary (default)
-# aws_region = "us-east-1"  # N. Virginia
+```bash
+export TF_VAR_instance_type="r5.2xlarge"
+export TF_VAR_aws_region="us-west-2"
+terraform apply
 ```
 
-### Storage
+### Option 3: Create terraform.tfvars (Optional)
+
+Create `terraform.tfvars` for persistent overrides:
 
 ```hcl
-root_volume_size = 200  # GB (adjust based on VM requirements)
-root_volume_type = "gp3"  # General Purpose SSD
+# Override defaults
+instance_type = "r5.2xlarge"  # Memory-optimized, cheaper for 64GB
+root_volume_size = 300        # More space for VMs
+ssh_allowed_cidrs = ["YOUR_IP/32"]  # Restrict SSH access
 ```
+
+### Available Instance Types (64GB RAM)
+
+```hcl
+instance_type = "r5.2xlarge"   # 8 vCPU, 64 GB RAM (default, memory-optimized)
+instance_type = "m5.4xlarge"   # 16 vCPU, 64 GB RAM (more CPU power)
+instance_type = "m6i.4xlarge"  # 16 vCPU, 64 GB RAM (newer generation)
+```
+
+### Spot vs On-Demand Instances
+
+By default, this project uses **Spot instances** to save ~60% on costs. Spot instances can be interrupted with 2-minute notice (rare for r5 types).
+
+```bash
+# Disable spot (use on-demand instead)
+terraform apply -var="use_spot_instance=false"
+
+# Set custom max spot price (optional)
+terraform apply -var="spot_max_price=0.15"
+```
+
+**Spot instance behavior:**
+- **Interruption**: If AWS needs capacity, instance is stopped (not terminated)
+- **Restart**: Instance automatically restarts when capacity available
+- **Data**: EBS volume persists, no data loss
+- **Best for**: Dev/learning environments
 
 ### SSH Access Restriction
 
-**IMPORTANT**: Restrict SSH access in production!
+**IMPORTANT**: The default allows SSH from anywhere (`0.0.0.0/0`). Restrict in production:
 
-```hcl
-# Allow from anywhere (current default - NOT RECOMMENDED for production)
-ssh_allowed_cidrs = ["0.0.0.0/0"]
-
-# Restrict to your IP (recommended)
-ssh_allowed_cidrs = ["YOUR_PUBLIC_IP/32"]
-```
-
-Find your public IP:
 ```bash
+# Get your public IP
 curl ifconfig.me
+
+# Apply with restricted access
+terraform apply -var='ssh_allowed_cidrs=["YOUR_IP/32"]'
 ```
 
 ## Outputs
@@ -171,7 +206,7 @@ free -h
 
 # Check CPU
 nproc
-# Should show 16 cores
+# Should show 8 cores (r5.2xlarge default)
 
 # Check disk space
 df -h
@@ -180,17 +215,24 @@ df -h
 
 ## Cost Estimation
 
-Approximate monthly costs for ca-west-1 (Calgary):
+**Current Configuration (r5.2xlarge Spot)**:
+- **EC2 Spot**: ~$110-130/month
+- **Storage (200 GB gp3)**: ~$16/month
+- **Total**: ~$126-146/month
 
-| Instance Type | vCPU | RAM   | On-Demand/month | Spot/month (est.) |
-|---------------|------|-------|-----------------|-------------------|
-| m5.4xlarge    | 16   | 64 GB | ~$500           | ~$150             |
-| r5.2xlarge    | 8    | 64 GB | ~$390           | ~$120             |
+### Cost Comparison for ca-west-1 (Calgary)
 
-Additional costs:
+| Instance Type | vCPU | RAM   | On-Demand/month | Spot/month | Savings |
+|---------------|------|-------|-----------------|------------|---------|
+| **r5.2xlarge** (default) | 8 | 64 GB | ~$390 | **~$120** | **69%** |
+| m5.4xlarge    | 16   | 64 GB | ~$560           | ~$170     | 70%     |
+
+**Additional costs:**
 - Storage (200 GB gp3): ~$16/month
 - Elastic IP (if instance running): Free
-- Data transfer: Varies
+- Data transfer: First 100 GB free, then $0.09/GB
+
+**Spot vs On-Demand**: By default, this setup uses Spot instances for maximum savings. Spot interruptions are rare for r5 types, and the instance will automatically restart when capacity is available.
 
 ## Cleanup
 
@@ -216,10 +258,11 @@ The `terraform/modules/ec2-instance` module can be reused for other instances:
 module "another_instance" {
   source = "./terraform/modules/ec2-instance"
 
-  name_prefix  = "my-other-instance"
-  instance_type = "t3.medium"
-  vpc_id        = "vpc-xxxxx"
-  subnet_id     = "subnet-xxxxx"
+  name_prefix       = "my-other-instance"
+  instance_type     = "t3.medium"
+  vpc_id            = "vpc-xxxxx"
+  subnet_id         = "subnet-xxxxx"
+  use_spot_instance = true  # Enable spot for savings
 }
 ```
 
@@ -251,7 +294,19 @@ chmod 400 k8s-vms-key.pem
 ### Region Not Available
 Some instance types may not be available in ca-west-1. Try:
 - Different region: `aws_region = "us-west-2"`
-- Different instance type: `instance_type = "r5.2xlarge"`
+- Different instance type: `instance_type = "r5a.2xlarge"`
+
+### Spot Instance Interrupted
+If your spot instance is stopped due to capacity:
+- **Wait**: Instance will auto-restart when capacity available (usually minutes)
+- **Switch region**: Try a different region with more capacity
+- **Use on-demand**: `terraform apply -var="use_spot_instance=false"` (costs more)
+
+Check spot interruption frequency:
+```bash
+# View spot instance history
+aws ec2 describe-spot-instance-requests --region ca-west-1
+```
 
 ## Support
 

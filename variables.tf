@@ -19,7 +19,7 @@ variable "instance_name" {
 variable "instance_type" {
   description = "EC2 instance type (must have 64GB RAM)"
   type        = string
-  default     = "m5.4xlarge" # 16 vCPU, 64 GiB RAM
+  default     = "r5.2xlarge" # 8 vCPU, 64 GiB RAM (Memory Optimized - Cost Effective)
 
   validation {
     condition = contains([
@@ -56,4 +56,16 @@ variable "ssh_allowed_cidrs" {
   description = "CIDR blocks allowed to SSH to the instance"
   type        = list(string)
   default     = ["0.0.0.0/0"] # WARNING: Restrict this in production
+}
+
+variable "use_spot_instance" {
+  description = "Use spot instance instead of on-demand (saves ~60% but can be interrupted)"
+  type        = bool
+  default     = true
+}
+
+variable "spot_max_price" {
+  description = "Maximum price for spot instance (leave empty for on-demand price)"
+  type        = string
+  default     = ""
 }

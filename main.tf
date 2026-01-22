@@ -38,7 +38,7 @@ data "aws_subnets" "default" {
 module "k8s_host" {
   source = "./terraform/modules/ec2-instance"
 
-  name_prefix  = var.instance_name
+  name_prefix   = var.instance_name
   instance_type = var.instance_type
   key_name      = var.key_name
 
@@ -48,8 +48,12 @@ module "k8s_host" {
   root_volume_size = var.root_volume_size
   root_volume_type = var.root_volume_type
 
-  ssh_allowed_cidrs    = var.ssh_allowed_cidrs
-  associate_public_ip  = true
+  ssh_allowed_cidrs   = var.ssh_allowed_cidrs
+  associate_public_ip = true
+
+  # Spot instance configuration
+  use_spot_instance = var.use_spot_instance
+  spot_max_price    = var.spot_max_price
 
   tags = {
     Purpose = "Kubernetes-VMs-Host"

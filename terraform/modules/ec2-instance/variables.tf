@@ -66,3 +66,15 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "use_spot_instance" {
+  description = "Use spot instance instead of on-demand"
+  type        = bool
+  default     = false
+}
+
+variable "spot_max_price" {
+  description = "Maximum price for spot instance (leave empty for on-demand price)"
+  type        = string
+  default     = ""
+}
