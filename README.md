@@ -4,13 +4,13 @@ This project provisions an EC2 instance with 64GB RAM on AWS using Terraform, de
 
 ## Architecture
 
-- **EC2 Instance**: r5.2xlarge Spot (8 vCPU, 64 GiB RAM) in ca-west-1
-- **Instance Type**: Spot instance (saves ~60% vs on-demand)
+- **EC2 Instance**: r5.2xlarge On-Demand (8 vCPU, 64 GiB RAM) in ca-west-1
+- **Instance Type**: On-Demand (reliable, always available)
 - **Storage**: 200 GB gp3 root volume
 - **Networking**: Default VPC with public IP and Elastic IP
 - **Security**: Security group with SSH access and Kubernetes API port
 - **SSH Key**: Auto-generated SSH key pair managed by Terraform
-- **Estimated Cost**: ~$110-130/month (spot) vs ~$390/month (on-demand)
+- **Estimated Cost**: ~$406/month (on-demand)
 
 ## Prerequisites
 
@@ -139,21 +139,26 @@ instance_type = "m6i.4xlarge"  # 16 vCPU, 64 GB RAM (newer generation)
 
 ### Spot vs On-Demand Instances
 
-By default, this project uses **Spot instances** to save ~60% on costs. Spot instances can be interrupted with 2-minute notice (rare for r5 types).
+By default, this project uses **On-Demand instances** for reliability. You can optionally enable Spot instances to save ~60% on costs.
 
 ```bash
-# Disable spot (use on-demand instead)
-terraform apply -var="use_spot_instance=false"
+# Enable spot (saves money but less reliable)
+terraform apply -var="use_spot_instance=true"
 
 # Set custom max spot price (optional)
-terraform apply -var="spot_max_price=0.15"
+terraform apply -var="use_spot_instance=true" -var="spot_max_price=0.15"
 ```
 
-**Spot instance behavior:**
-- **Interruption**: If AWS needs capacity, instance is stopped (not terminated)
-- **Restart**: Instance automatically restarts when capacity available
-- **Data**: EBS volume persists, no data loss
-- **Best for**: Dev/learning environments
+**On-Demand (default):**
+- ✅ Always available
+- ✅ No interruptions
+- ❌ ~$270/month more expensive than spot
+
+**Spot (optional):**
+- ✅ 60-70% cheaper
+- ❌ Can be interrupted with 2-minute notice
+- ❌ May need to wait for capacity
+- **Best for**: Dev/learning environments where interruptions are acceptable
 
 ### SSH Access Restriction
 
@@ -215,16 +220,16 @@ df -h
 
 ## Cost Estimation
 
-**Current Configuration (r5.2xlarge Spot)**:
-- **EC2 Spot**: ~$110-130/month
+**Current Configuration (r5.2xlarge On-Demand)**:
+- **EC2 On-Demand**: ~$390/month
 - **Storage (200 GB gp3)**: ~$16/month
-- **Total**: ~$126-146/month
+- **Total**: ~$406/month
 
 ### Cost Comparison for ca-west-1 (Calgary)
 
-| Instance Type | vCPU | RAM   | On-Demand/month | Spot/month | Savings |
-|---------------|------|-------|-----------------|------------|---------|
-| **r5.2xlarge** (default) | 8 | 64 GB | ~$390 | **~$120** | **69%** |
+| Instance Type | vCPU | RAM   | On-Demand/month (default) | Spot/month (optional) | Spot Savings |
+|---------------|------|-------|---------------------------|----------------------|--------------|
+| **r5.2xlarge** | 8 | 64 GB | **~$390** | ~$120 | 69% |
 | m5.4xlarge    | 16   | 64 GB | ~$560           | ~$170     | 70%     |
 
 **Additional costs:**
@@ -232,7 +237,7 @@ df -h
 - Elastic IP (if instance running): Free
 - Data transfer: First 100 GB free, then $0.09/GB
 
-**Spot vs On-Demand**: By default, this setup uses Spot instances for maximum savings. Spot interruptions are rare for r5 types, and the instance will automatically restart when capacity is available.
+**Note**: On-Demand is the default for reliability. Enable spot with `-var="use_spot_instance=true"` if you want to save ~$270/month but can tolerate interruptions.
 
 ## Cleanup
 

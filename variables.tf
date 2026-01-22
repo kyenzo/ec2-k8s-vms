@@ -61,7 +61,7 @@ variable "ssh_allowed_cidrs" {
 variable "use_spot_instance" {
   description = "Use spot instance instead of on-demand (saves ~60% but can be interrupted)"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "spot_max_price" {
