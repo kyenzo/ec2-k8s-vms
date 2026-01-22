@@ -10,7 +10,24 @@ This project provisions an EC2 instance with 64GB RAM on AWS using Terraform, de
 - **Networking**: Default VPC with public IP and Elastic IP
 - **Security**: Security group with SSH access and Kubernetes API port
 - **SSH Key**: Auto-generated SSH key pair managed by Terraform
+- **Auto-Install**: KVM, Vagrant, Ansible, kubectl, Docker (via cloud-init)
 - **Estimated Cost**: ~$406/month (on-demand)
+
+### Pre-installed Tools (Automatic)
+
+On first boot, the instance automatically installs:
+
+| Tool | Purpose | Version |
+|------|---------|---------|
+| **KVM/libvirt** | Hardware virtualization for VMs | Latest |
+| **Vagrant** | VM lifecycle management | Latest from HashiCorp |
+| **vagrant-libvirt** | Vagrant provider for KVM | Latest plugin |
+| **Ansible** | Configuration management & automation | Latest from PPA |
+| **kubectl** | Kubernetes command-line tool | v1.28 |
+| **Docker** | Container runtime | Latest CE |
+| **Utilities** | git, vim, htop, jq, curl, wget, etc. | Latest |
+
+**Installation time**: 5-10 minutes on first boot
 
 ## Prerequisites
 
@@ -37,6 +54,8 @@ ec2-k8s-vms/
 ├── main.tf                          # Root configuration
 ├── variables.tf                     # Variable declarations with defaults
 ├── outputs.tf                       # Root outputs
+├── scripts/
+│   └── install-k8s-tools.sh         # Auto-installs KVM, Vagrant, Ansible, kubectl
 ├── terraform/
 │   └── modules/
 │       └── ec2-instance/            # Reusable EC2 module
@@ -90,6 +109,27 @@ Or simply run:
 ```bash
 terraform output -raw ssh_command | bash
 ```
+
+### 5. Wait for Tools Installation (First Boot Only)
+
+On first boot, the instance automatically installs:
+- **KVM/libvirt** (virtualization)
+- **Vagrant + vagrant-libvirt** (VM management)
+- **Ansible** (automation)
+- **kubectl** (Kubernetes CLI)
+- **Docker** (containerization)
+- **Additional utilities** (git, vim, htop, jq, etc.)
+
+**Check installation status:**
+```bash
+# Wait 5-10 minutes for installation to complete, then SSH in and check:
+tail -f /var/log/install-k8s-tools.log
+
+# Or check if installation is complete:
+cat /etc/motd
+```
+
+Installation takes **5-10 minutes**. Once complete, you'll see a welcome message when you SSH in.
 
 ## Configuration
 
@@ -202,8 +242,9 @@ chmod 400 ~/backup/k8s-vms-key.pem
 
 ## Verify Instance
 
-After connecting via SSH, verify the instance:
+After connecting via SSH, verify the instance and installed tools:
 
+### System Resources
 ```bash
 # Check RAM
 free -h
@@ -216,6 +257,30 @@ nproc
 # Check disk space
 df -h
 # Should show ~200GB on /dev/nvme0n1p1
+```
+
+### Installed Tools
+```bash
+# Verify KVM/libvirt
+virsh --version
+sudo virsh list --all
+
+# Verify Vagrant
+vagrant --version
+vagrant plugin list | grep libvirt
+
+# Verify Ansible
+ansible --version
+
+# Verify kubectl
+kubectl version --client
+
+# Verify Docker
+docker --version
+docker ps
+
+# Check installation log
+cat /var/log/install-k8s-tools.log
 ```
 
 ## Cost Estimation
@@ -273,11 +338,47 @@ module "another_instance" {
 
 ## Next Steps
 
-This infrastructure is ready for:
-1. Installing virtualization tools (KVM, libvirt, Vagrant)
-2. Creating VMs with Vagrant
-3. Setting up Kubernetes with kubeadm
-4. Ansible automation for the above
+The instance comes pre-configured with all necessary tools. You can now:
+
+1. **Clone your Ansible/Vagrant repository**
+   ```bash
+   git clone <your-k8s-config-repo>
+   cd <your-k8s-config-repo>
+   ```
+
+2. **Create VMs with Vagrant**
+   ```bash
+   vagrant up
+   ```
+
+3. **Configure Kubernetes with Ansible**
+   ```bash
+   cd ansible
+   ansible-playbook playbooks/install-kubernetes.yml
+   ```
+
+4. **Access your cluster**
+   ```bash
+   kubectl get nodes
+   ```
+
+### Recommended Workflow
+
+**For local development on your Mac:**
+- Use **VS Code Remote SSH** extension to edit files directly on the instance
+- Automatic port forwarding for web apps
+- No need to commit/push for every change
+
+**Setup VS Code Remote SSH:**
+1. Install "Remote - SSH" extension in VS Code
+2. Add SSH config:
+   ```
+   Host k8s-dev
+     HostName <instance-public-ip>
+     User ubuntu
+     IdentityFile /path/to/k8s-vms-key.pem
+   ```
+3. Connect and start coding!
 
 ## Troubleshooting
 

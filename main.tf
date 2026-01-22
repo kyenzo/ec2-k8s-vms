@@ -55,6 +55,9 @@ module "k8s_host" {
   use_spot_instance = var.use_spot_instance
   spot_max_price    = var.spot_max_price
 
+  # User data script to install tools on first boot
+  user_data = file("${path.module}/scripts/install-k8s-tools.sh")
+
   tags = {
     Purpose = "Kubernetes-VMs-Host"
   }
