@@ -33,9 +33,8 @@ This project provisions an EC2 instance with 64GB RAM on AWS using Terraform, de
 ```
 ec2-k8s-vms/
 ├── main.tf                          # Root configuration
-├── variables.tf                     # Root variables
+├── variables.tf                     # Variable declarations with defaults
 ├── outputs.tf                       # Root outputs
-├── terraform.tfvars                 # Configuration values
 ├── terraform/
 │   └── modules/
 │       └── ec2-instance/            # Reusable EC2 module
