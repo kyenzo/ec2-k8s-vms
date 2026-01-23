@@ -160,14 +160,15 @@ This project includes GitHub Actions integration for automated secret verificati
    terraform apply
    ```
 
-2. **Note the GitHub Actions role ARN** from Terraform outputs
+2. **Get the GitHub Actions role ARN** from Terraform outputs
    ```bash
    terraform output github_actions_role_arn
    ```
 
-3. **Add repository variable in GitHub**
-   - Go to your GitHub repository → Settings → Secrets and variables → Actions → Variables
-   - Create variable: `AWS_ROLE_ARN` with the value from step 2
+3. **Update the workflow file** with the ARN
+   - Edit `.github/workflows/verify-secrets.yml`
+   - Replace `arn:aws:iam::ACCOUNT_ID:role/github-actions-ec2-k8s` with the actual ARN from step 2
+   - Commit and push the change
 
 4. **Verify secrets** (optional)
    - Go to Actions tab in your GitHub repository
@@ -189,8 +190,9 @@ After each `terraform apply`, these secrets are automatically updated:
 - ✅ **No AWS credentials in GitHub**: Uses OIDC federation
 - ✅ **No secrets printed in logs**: Workflows only verify format, never print values
 - ✅ **Local PEM file**: SSH key saved locally as `k8s-vms-key.pem` (gitignored)
-- ✅ **Repository restrictions**: OIDC role limited to specific repositories
+- ✅ **Repository restrictions**: OIDC role limited to specific repositories (trust policy)
 - ✅ **Immediate deletion**: Secrets have 0-day recovery window (dev environment)
+- ✅ **Safe to hardcode ARN**: The IAM role ARN is not a secret; security comes from the trust policy that restricts role assumption to your specific GitHub repository
 
 ### Workflow for Destroying and Recreating
 
