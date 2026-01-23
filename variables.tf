@@ -99,5 +99,8 @@ variable "github_actions_role_name" {
 variable "github_allowed_repositories" {
   description = "List of GitHub repositories allowed to assume the IAM role (format: owner/repo)"
   type        = list(string)
-  default     = ["kyenzo/ec2-k8s-vms"]
+  default     = [
+    "kyenzo/ec2-k8s-vms",
+    "kyenzo/on-prem-k8s"
+  ]
 }
