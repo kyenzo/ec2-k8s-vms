@@ -49,8 +49,8 @@ output "github_actions_role_arn" {
 output "secrets_info" {
   description = "AWS Secrets Manager secret names (for GitHub Actions workflow)"
   value = {
-    ssh_key_secret_name         = aws_secretsmanager_secret.ec2_ssh_key.name
-    public_ip_secret_name       = aws_secretsmanager_secret.ec2_public_ip.name
-    connection_info_secret_name = aws_secretsmanager_secret.ec2_connection_info.name
+    ssh_key_secret_name         = module.ec2_secrets.ssh_key_secret_name
+    public_ip_secret_name       = module.ec2_secrets.public_ip_secret_name
+    connection_info_secret_name = module.ec2_secrets.connection_info_secret_name
   }
 }
