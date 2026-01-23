@@ -69,3 +69,35 @@ variable "spot_max_price" {
   type        = string
   default     = ""
 }
+
+# =============================================================================
+# AWS Secrets Manager Configuration
+# =============================================================================
+
+variable "secrets_prefix" {
+  description = "Prefix for Secrets Manager secret names"
+  type        = string
+  default     = "k8s-vms"
+}
+
+# =============================================================================
+# GitHub OIDC Configuration
+# =============================================================================
+
+variable "create_oidc_provider" {
+  description = "Whether to create the GitHub OIDC provider (set to false if it already exists in your AWS account)"
+  type        = bool
+  default     = true
+}
+
+variable "github_actions_role_name" {
+  description = "Name for the IAM role that GitHub Actions will assume"
+  type        = string
+  default     = "github-actions-ec2-k8s"
+}
+
+variable "github_allowed_repositories" {
+  description = "List of GitHub repositories allowed to assume the IAM role (format: owner/repo)"
+  type        = list(string)
+  default     = ["kyenzo/ec2-k8s-vms"]
+}

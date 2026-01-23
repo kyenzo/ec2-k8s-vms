@@ -37,3 +37,9 @@ output "ssh_command" {
   description = "SSH command to connect to the instance"
   value       = "ssh -i ${local_file.private_key.filename} ubuntu@${var.associate_public_ip ? aws_eip.instance[0].public_ip : aws_instance.main.public_ip}"
 }
+
+output "private_key_pem" {
+  description = "The private key in PEM format (sensitive)"
+  value       = tls_private_key.ssh_key.private_key_pem
+  sensitive   = true
+}

@@ -62,3 +62,85 @@ module "k8s_host" {
     Purpose = "Kubernetes-VMs-Host"
   }
 }
+
+# =============================================================================
+# AWS Secrets Manager - Store EC2 credentials for GitHub Actions access
+# =============================================================================
+
+# Secret for SSH private key (PEM)
+resource "aws_secretsmanager_secret" "ec2_ssh_key" {
+  name                    = "${var.secrets_prefix}/ec2-ssh-private-key"
+  description             = "SSH private key for EC2 K8s VMs host"
+  recovery_window_in_days = 0 # Allow immediate deletion for dev environment
+
+  tags = {
+    Purpose = "EC2-SSH-Access"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "ec2_ssh_key" {
+  secret_id     = aws_secretsmanager_secret.ec2_ssh_key.id
+  secret_string = module.k8s_host.private_key_pem
+}
+
+# Secret for EC2 public IP
+resource "aws_secretsmanager_secret" "ec2_public_ip" {
+  name                    = "${var.secrets_prefix}/ec2-public-ip"
+  description             = "Public IP address of EC2 K8s VMs host"
+  recovery_window_in_days = 0
+
+  tags = {
+    Purpose = "EC2-Connection-Info"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "ec2_public_ip" {
+  secret_id     = aws_secretsmanager_secret.ec2_public_ip.id
+  secret_string = module.k8s_host.instance_public_ip
+}
+
+# Secret for EC2 connection info (JSON with all details)
+resource "aws_secretsmanager_secret" "ec2_connection_info" {
+  name                    = "${var.secrets_prefix}/ec2-connection-info"
+  description             = "Full connection info for EC2 K8s VMs host"
+  recovery_window_in_days = 0
+
+  tags = {
+    Purpose = "EC2-Connection-Info"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "ec2_connection_info" {
+  secret_id = aws_secretsmanager_secret.ec2_connection_info.id
+  secret_string = jsonencode({
+    host        = module.k8s_host.instance_public_ip
+    user        = "ubuntu"
+    private_key = module.k8s_host.private_key_pem
+    port        = 22
+  })
+}
+
+# =============================================================================
+# GitHub OIDC - Allow GitHub Actions to access secrets without stored credentials
+# =============================================================================
+
+module "github_oidc" {
+  source = "./terraform/modules/github-oidc"
+
+  create_oidc_provider = var.create_oidc_provider
+  role_name            = var.github_actions_role_name
+
+  # Repositories allowed to assume this role
+  allowed_repositories = var.github_allowed_repositories
+
+  # Secrets this role can access
+  allowed_secret_arns = [
+    aws_secretsmanager_secret.ec2_ssh_key.arn,
+    aws_secretsmanager_secret.ec2_public_ip.arn,
+    aws_secretsmanager_secret.ec2_connection_info.arn,
+  ]
+
+  tags = {
+    Purpose = "GitHub-Actions-OIDC"
+  }
+}
