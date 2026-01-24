@@ -63,17 +63,13 @@ ec2-k8s-vms/
 │       │   ├── variables.tf         # Module variables
 │       │   ├── outputs.tf           # Module outputs
 │       │   └── versions.tf          # Provider versions
-│       ├── github-oidc/             # GitHub Actions OIDC authentication
-│       │   ├── main.tf              # OIDC provider and IAM role
-│       │   ├── variables.tf         # Module variables
-│       │   └── outputs.tf           # Role ARN output
-│       └── secrets-manager/         # AWS Secrets Manager integration
-│           ├── main.tf              # Secret resources
+│       └── github-oidc/             # GitHub Actions OIDC authentication
+│           ├── main.tf              # OIDC provider and IAM role
 │           ├── variables.tf         # Module variables
-│           └── outputs.tf           # Secret ARNs and names
+│           └── outputs.tf           # Role ARN output
 ├── .github/
 │   └── workflows/
-│       └── verify-secrets.yml       # Verify secrets via OIDC (manual)
+│       └── verify-secrets.yml       # Update and verify secrets via OIDC (manual)
 └── README.md
 ```
 
@@ -144,14 +140,14 @@ Installation takes **5-10 minutes**. Once complete, you'll see a welcome message
 
 ## GitHub Actions Integration (Optional)
 
-This project includes GitHub Actions integration for automated secret verification after infrastructure changes.
+This project includes GitHub Actions integration for updating and verifying secrets in AWS Secrets Manager.
 
 ### Architecture
 
 - **OIDC Authentication**: GitHub Actions authenticates to AWS without stored credentials
 - **AWS Secrets Manager**: Stores SSH key and public IP for automated access
 - **No Secrets in GitHub**: All sensitive data stays in AWS
-- **Manual Workflow**: Run `.github/workflows/verify-secrets.yml` manually to verify secrets
+- **Manual Workflow**: Run the workflow manually after `terraform apply` to update secrets
 
 ### Setup
 
@@ -160,43 +156,34 @@ This project includes GitHub Actions integration for automated secret verificati
    terraform apply
    ```
 
-2. **Get the GitHub Actions role ARN** from Terraform outputs
-   ```bash
-   terraform output github_actions_role_arn
-   ```
-
-3. **Update the workflow file** with the ARN
-   - Edit `.github/workflows/verify-secrets.yml`
-   - Replace `arn:aws:iam::ACCOUNT_ID:role/github-actions-ec2-k8s` with the actual ARN from step 2
-   - Commit and push the change
-
-4. **Verify secrets** (optional)
+2. **Update secrets in AWS Secrets Manager**
    - Go to Actions tab in your GitHub repository
-   - Run the "Verify AWS Secrets (OIDC)" workflow manually
-   - Check that all secrets are valid without exposing sensitive data
+   - Run the "Update and Verify AWS Secrets" workflow manually
+   - Provide the required inputs:
+     - **Public IP**: Get from `terraform output -raw instance_public_ip`
+     - **SSH Private Key**: Get from `cat k8s-vms-key.pem | base64`
+   - The workflow will create/update the secrets and verify they're valid
 
 ### What Gets Stored in AWS Secrets Manager
 
-After each `terraform apply`, these secrets are automatically updated:
+The GitHub Actions workflow manages these secrets:
 
 | Secret Name | Content | Usage |
 |-------------|---------|-------|
 | `k8s-vms/ec2-ssh-private-key` | SSH private key (PEM) | Automated SSH access |
 | `k8s-vms/ec2-public-ip` | Public IP address | Connection info |
-| `k8s-vms/ec2-connection-info` | JSON with host, user, key, port | Complete connection details |
 
 ### Security Features
 
 - ✅ **No AWS credentials in GitHub**: Uses OIDC federation
-- ✅ **No secrets printed in logs**: Workflows only verify format, never print values
+- ✅ **No secrets printed in logs**: Secrets passed as inputs, never printed
+- ✅ **No secrets in Terraform state**: Secrets managed separately by GitHub Actions
 - ✅ **Local PEM file**: SSH key saved locally as `k8s-vms-key.pem` (gitignored)
 - ✅ **Repository restrictions**: OIDC role limited to specific repositories (trust policy)
-- ✅ **Immediate deletion**: Secrets have 0-day recovery window (dev environment)
-- ✅ **Safe to hardcode ARN**: The IAM role ARN is not a secret; security comes from the trust policy that restricts role assumption to your specific GitHub repository
 
 ### Workflow for Destroying and Recreating
 
-When you destroy and recreate the instance, secrets are automatically updated:
+When you destroy and recreate the instance:
 
 ```bash
 # Destroy the instance
@@ -205,8 +192,10 @@ terraform destroy
 # Later, recreate it
 terraform apply
 
-# Secrets are automatically updated in AWS Secrets Manager
-# GitHub Actions can verify secrets without any manual steps
+# Update secrets manually via GitHub Actions workflow
+# 1. Get new public IP: terraform output -raw instance_public_ip
+# 2. Get SSH key: cat k8s-vms-key.pem | base64
+# 3. Run "Update and Verify AWS Secrets" workflow with these values
 ```
 
 ## Configuration
@@ -301,14 +290,7 @@ private_key_path    = "./k8s-vms-key.pem"
 ssh_command         = "ssh -i ./k8s-vms-key.pem ubuntu@xx.xx.xx.xx"
 
 # GitHub Actions Integration
-github_actions_role_arn = "arn:aws:iam::xxxx:role/github-actions-ec2-access"
-
-# AWS Secrets Manager
-secrets_info = {
-  connection_info_secret_name = "k8s-vms/ec2-connection-info"
-  public_ip_secret_name       = "k8s-vms/ec2-public-ip"
-  ssh_key_secret_name         = "k8s-vms/ec2-ssh-private-key"
-}
+github_actions_role_arn = "arn:aws:iam::xxxx:role/github-actions-ec2-k8s"
 ```
 
 View outputs anytime:
@@ -413,7 +395,7 @@ Type `yes` when prompted. This will delete:
 
 ## Module Reusability
 
-All three modules are designed to be reusable:
+Both modules are designed to be reusable:
 
 ### EC2 Instance Module
 
@@ -438,22 +420,9 @@ module "github_oidc" {
   create_oidc_provider = true
   role_name            = "my-github-actions-role"
   allowed_repositories = ["my-org/my-repo"]
-  allowed_secret_arns  = [aws_secretsmanager_secret.my_secret.arn]
-}
-```
-
-### Secrets Manager Module
-
-```hcl
-module "my_secrets" {
-  source = "./terraform/modules/secrets-manager"
-
-  secrets_prefix       = "my-app"
-  ssh_private_key      = tls_private_key.my_key.private_key_pem
-  public_ip            = aws_instance.my_instance.public_ip
-  ssh_user             = "ec2-user"
-  ssh_port             = 22
-  recovery_window_days = 7  # Production: use recovery window
+  allowed_secret_arns  = [
+    "arn:aws:secretsmanager:ca-west-1:*:secret:my-app/*"
+  ]
 }
 ```
 

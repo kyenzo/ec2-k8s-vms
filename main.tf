@@ -53,21 +53,6 @@ module "k8s_host" {
 }
 
 # =============================================================================
-# AWS Secrets Manager - Store EC2 credentials for GitHub Actions access
-# =============================================================================
-
-module "ec2_secrets" {
-  source = "./terraform/modules/secrets-manager"
-
-  secrets_prefix       = var.secrets_prefix
-  ssh_private_key      = module.k8s_host.private_key_pem
-  public_ip            = module.k8s_host.instance_public_ip
-  ssh_user             = "ubuntu"
-  ssh_port             = 22
-  recovery_window_days = 0 # Allow immediate deletion for dev environment
-}
-
-# =============================================================================
 # GitHub OIDC - Allow GitHub Actions to access secrets without stored credentials
 # =============================================================================
 
@@ -80,8 +65,10 @@ module "github_oidc" {
   # Repositories allowed to assume this role
   allowed_repositories = var.github_allowed_repositories
 
-  # Secrets this role can access
-  allowed_secret_arns = module.ec2_secrets.all_secret_arns
+  # Secrets this role can access (ARNs will be managed by GitHub Actions)
+  allowed_secret_arns = [
+    "arn:aws:secretsmanager:${var.aws_region}:*:secret:${var.secrets_prefix}/*"
+  ]
 
   tags = {
     Purpose = "GitHub-Actions-OIDC"

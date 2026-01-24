@@ -41,16 +41,3 @@ output "github_actions_role_arn" {
   description = "IAM Role ARN for GitHub Actions to assume via OIDC"
   value       = module.github_oidc.role_arn
 }
-
-# =============================================================================
-# AWS Secrets Manager Outputs
-# =============================================================================
-
-output "secrets_info" {
-  description = "AWS Secrets Manager secret names (for GitHub Actions workflow)"
-  value = {
-    ssh_key_secret_name         = module.ec2_secrets.ssh_key_secret_name
-    public_ip_secret_name       = module.ec2_secrets.public_ip_secret_name
-    connection_info_secret_name = module.ec2_secrets.connection_info_secret_name
-  }
-}
