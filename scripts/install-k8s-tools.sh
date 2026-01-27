@@ -50,6 +50,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y vagrant
 # Install vagrant-libvirt plugin dependencies
 echo "[6/7] Installing vagrant-libvirt plugin dependencies..."
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    build-essential \
     libxslt-dev \
     libxml2-dev \
     libvirt-dev \
@@ -62,6 +63,10 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
 # Install the vagrant-libvirt plugin as ubuntu user
 echo "[6.5/7] Installing vagrant-libvirt plugin..."
 sudo -u ubuntu vagrant plugin install vagrant-libvirt
+
+# Set libvirt as default provider for ubuntu user
+echo "[6.75/7] Setting libvirt as default Vagrant provider..."
+sudo -u ubuntu bash -c "echo 'export VAGRANT_DEFAULT_PROVIDER=libvirt' >> /home/ubuntu/.bashrc"
 
 # Install Ansible
 echo "[7/7] Installing Ansible..."
