@@ -19,7 +19,7 @@ variable "instance_name" {
 variable "instance_type" {
   description = "EC2 instance type (must have 64GB+ RAM and support nested virtualization)"
   type        = string
-  default     = "r5.4xlarge" # 16 vCPU, 128 GiB RAM (Memory Optimized - Nested Virt)
+  default     = "r5.2xlarge" # 8 vCPU, 64 GiB RAM (Memory Optimized - Nested Virt)
 
   validation {
     condition = contains([

@@ -41,8 +41,8 @@ module "k8s_host" {
   associate_public_ip = true
 
   # Enable nested virtualization for KVM
-  # r5.4xlarge has 16 vCPUs: 8 cores × 1 thread (hyper-threading disabled)
-  cpu_core_count       = 8
+  # r5.2xlarge has 8 vCPUs: 4 cores × 1 thread (hyper-threading disabled)
+  cpu_core_count       = 4
   cpu_threads_per_core = 1
 
   # Spot instance configuration
