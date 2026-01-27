@@ -78,3 +78,15 @@ variable "spot_max_price" {
   type        = string
   default     = ""
 }
+
+variable "cpu_core_count" {
+  description = "Number of CPU cores. Set to half of vCPUs to enable nested virtualization"
+  type        = number
+  default     = null
+}
+
+variable "cpu_threads_per_core" {
+  description = "Threads per core. Set to 1 to disable hyper-threading and enable nested virtualization"
+  type        = number
+  default     = null
+}

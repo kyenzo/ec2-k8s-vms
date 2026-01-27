@@ -17,9 +17,9 @@ variable "instance_name" {
 }
 
 variable "instance_type" {
-  description = "EC2 instance type (must have 64GB RAM)"
+  description = "EC2 instance type (must have 64GB+ RAM and support nested virtualization)"
   type        = string
-  default     = "r5.2xlarge" # 8 vCPU, 64 GiB RAM (Memory Optimized - Cost Effective)
+  default     = "r5.4xlarge" # 16 vCPU, 128 GiB RAM (Memory Optimized - Nested Virt)
 
   validation {
     condition = contains([
@@ -27,10 +27,11 @@ variable "instance_type" {
       "m5a.4xlarge",  # 16 vCPU, 64 GiB RAM
       "m6i.4xlarge",  # 16 vCPU, 64 GiB RAM
       "r5.2xlarge",   # 8 vCPU, 64 GiB RAM (Memory Optimized)
+      "r5.4xlarge",   # 16 vCPU, 128 GiB RAM (Memory Optimized)
       "r5a.2xlarge",  # 8 vCPU, 64 GiB RAM
       "r6i.2xlarge"   # 8 vCPU, 64 GiB RAM
     ], var.instance_type)
-    error_message = "Instance type must support 64GB RAM. Choose from: m5.4xlarge, m5a.4xlarge, m6i.4xlarge, r5.2xlarge, r5a.2xlarge, r6i.2xlarge"
+    error_message = "Instance type must support 64GB+ RAM. Choose from: m5.4xlarge, m5a.4xlarge, m6i.4xlarge, r5.2xlarge, r5.4xlarge, r5a.2xlarge, r6i.2xlarge"
   }
 }
 

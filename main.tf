@@ -40,6 +40,11 @@ module "k8s_host" {
   ssh_allowed_cidrs   = var.ssh_allowed_cidrs
   associate_public_ip = true
 
+  # Enable nested virtualization for KVM
+  # r5.4xlarge has 16 vCPUs: 8 cores × 1 thread (hyper-threading disabled)
+  cpu_core_count       = 8
+  cpu_threads_per_core = 1
+
   # Spot instance configuration
   use_spot_instance = var.use_spot_instance
   spot_max_price    = var.spot_max_price

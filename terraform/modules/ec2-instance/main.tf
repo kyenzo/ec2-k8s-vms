@@ -90,6 +90,14 @@ resource "aws_instance" "main" {
   vpc_security_group_ids = [aws_security_group.instance.id]
   subnet_id              = var.subnet_id
 
+  # Enable nested virtualization for KVM
+  # Disabling hyper-threading enables nested virtualization
+  # Example: r5.4xlarge (16 vCPUs): 8 cores × 1 thread
+  cpu_options {
+    core_count       = var.cpu_core_count
+    threads_per_core = var.cpu_threads_per_core
+  }
+
   # Spot instance configuration
   dynamic "instance_market_options" {
     for_each = var.use_spot_instance ? [1] : []
