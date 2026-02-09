@@ -142,7 +142,7 @@ Note: User 'ubuntu' has been added to:
   - kvm group (for hardware virtualization)
   - docker group (for Docker access)
 
-============================================
+=============================================
 EOF
 
 echo ""
