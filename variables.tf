@@ -105,4 +105,3 @@ variable "github_allowed_repositories" {
     "kyenzo/on-prem-k8s"
   ]
 }
-
