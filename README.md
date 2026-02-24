@@ -470,7 +470,6 @@ The instance comes pre-configured with all necessary tools. You can now:
    ```
 3. Connect and start coding!
 
-
 ## Troubleshooting
 
 ### AWS Credentials Not Found
