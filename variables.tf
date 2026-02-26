@@ -65,12 +65,6 @@ variable "use_spot_instance" {
   default     = false
 }
 
-variable "spot_max_price" {
-  description = "Maximum price for spot instance (leave empty for on-demand price)"
-  type        = string
-  default     = ""
-}
-
 variable "spot_max_price1" {
   description = "Maximum price for spot instance (leave empty for on-demand price)"
   type        = string
