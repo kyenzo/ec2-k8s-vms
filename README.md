@@ -468,7 +468,7 @@ The instance comes pre-configured with all necessary tools. You can now:
      User ubuntu
      IdentityFile /path/to/k8s-vms-key.pem
    ```
-3. Connect and start coding
+3. Connect and start coding!
 
 ## Troubleshooting
 
