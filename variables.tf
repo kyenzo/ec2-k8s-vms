@@ -71,6 +71,12 @@ variable "spot_max_price" {
   default     = ""
 }
 
+variable "spot_max_price1" {
+  description = "Maximum price for spot instance (leave empty for on-demand price)"
+  type        = string
+  default     = ""
+}
+
 # =============================================================================
 # AWS Secrets Manager Configuration
 # =============================================================================
@@ -105,3 +111,4 @@ variable "github_allowed_repositories" {
     "kyenzo/on-prem-k8s"
   ]
 }
+
